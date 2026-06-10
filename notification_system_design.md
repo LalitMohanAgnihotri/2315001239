@@ -193,3 +193,82 @@ ON notifications(created_at);
 3. Read replicas for heavy read traffic.
 4. Database partitioning based on creation date.
 5. Composite indexes for common queries.
+ 
+
+ # Stage 3
+
+## Query Analysis
+
+Given Query:
+
+```sql
+SELECT *
+FROM notifications
+WHERE studentID = 1042
+AND isRead = false
+ORDER BY createdAt ASC;
+```
+
+### Is the query accurate?
+
+Yes. It correctly retrieves unread notifications for a specific student ordered by creation time.
+
+### Why is the query slow?
+
+As the notifications table grows to millions of rows, the database may perform a large scan before filtering records.
+
+The query filters using:
+
+* studentID
+* isRead
+
+and sorts using:
+
+* createdAt
+
+Without a suitable composite index, the database must perform additional sorting and scanning operations.
+
+### Recommended Index
+
+```sql
+CREATE INDEX idx_notification_lookup
+ON notifications(studentID, isRead, createdAt);
+```
+
+This allows the database to efficiently:
+
+1. Locate notifications for a student.
+2. Filter unread notifications.
+3. Return records already ordered by createdAt.
+
+### Should we add indexes on every column?
+
+No.
+
+Reasons:
+
+1. Additional storage consumption.
+2. Slower INSERT operations.
+3. Slower UPDATE operations.
+4. Increased index maintenance overhead.
+
+Indexes should only be added for frequently queried columns.
+
+### Placement Notifications in Last 7 Days
+
+```sql
+SELECT *
+FROM notifications
+WHERE notificationType = 'Placement'
+AND createdAt >= NOW() - INTERVAL '7 days';
+```
+
+### Expected Computational Cost
+
+Without index:
+
+* O(N)
+
+With composite index:
+
+* Approximately O(log N)
