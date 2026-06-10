@@ -272,3 +272,201 @@ Without index:
 With composite index:
 
 * Approximately O(log N)
+# Stage 4
+
+## Problem
+
+Notifications are being fetched on every page load for every student.
+
+As the number of students grows, database load increases significantly, resulting in slower response times and poor user experience.
+
+---
+
+## Proposed Solutions
+
+### 1. Pagination
+
+Instead of fetching all notifications:
+
+```http
+GET /notifications?page=1&limit=20
+```
+
+Benefits:
+
+* Smaller result set
+* Faster response time
+* Reduced database load
+
+Tradeoff:
+
+* Requires multiple API requests
+
+---
+
+### 2. Redis Cache
+
+Frequently accessed notifications can be stored in Redis.
+
+Benefits:
+
+* Extremely fast reads
+* Reduced database traffic
+
+Tradeoff:
+
+* Cache invalidation complexity
+* Possibility of stale data
+
+---
+
+### 3. Read Replicas
+
+Use primary database for writes and replicas for reads.
+
+Benefits:
+
+* Improved scalability
+* Reduced load on primary database
+
+Tradeoff:
+
+* Replication lag
+
+---
+
+### 4. Composite Indexes
+
+Indexes on frequently queried fields:
+
+```sql
+CREATE INDEX idx_notification_lookup
+ON notifications(studentID, isRead, createdAt);
+```
+
+Benefits:
+
+* Faster query execution
+
+Tradeoff:
+
+* Increased storage
+* Slower writes
+
+---
+
+## Recommended Approach
+
+Use a combination of:
+
+1. Pagination
+2. Redis Cache
+3. Read Replicas
+4. Proper Indexing
+
+This provides the best balance between performance and scalability.
+ 
+
+ # Stage 5
+
+## Problems with Current Implementation
+
+Current pseudocode:
+
+```python
+for student_id in student_ids:
+    send_email(student_id, message)
+    save_to_db(student_id, message)
+    push_to_app(student_id, message)
+```
+
+### Issues
+
+1. Slow execution for 50,000 students.
+2. Email failure stops processing.
+3. Partial success is difficult to handle.
+4. No retry mechanism.
+5. Tight coupling between operations.
+
+---
+
+## Proposed Architecture
+
+### Step 1
+
+HR clicks "Notify All".
+
+### Step 2
+
+Notification Service creates notification jobs.
+
+### Step 3
+
+Jobs are placed into a Message Queue.
+
+Examples:
+
+* RabbitMQ
+* Kafka
+
+### Step 4
+
+Dedicated workers process jobs asynchronously.
+
+Workers:
+
+* Email Worker
+* Database Worker
+* Push Notification Worker
+
+---
+
+## Retry Mechanism
+
+Failed jobs are retried automatically.
+
+Example:
+
+* Retry 1
+* Retry 2
+* Retry 3
+
+If all retries fail:
+
+Move message to Dead Letter Queue (DLQ).
+
+---
+
+## Benefits
+
+1. High scalability
+2. Fault tolerance
+3. Faster response time
+4. Independent processing
+5. Reliable notification delivery
+
+---
+
+## Revised Pseudocode
+
+```python
+def notify_all(student_ids, message):
+
+    for student_id in student_ids:
+        queue.publish({
+            "studentId": student_id,
+            "message": message
+        })
+
+# Email Worker
+consume():
+    send_email()
+
+# Database Worker
+consume():
+    save_to_db()
+
+# Push Worker
+consume():
+    push_to_app()
+```
