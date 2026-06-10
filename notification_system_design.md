@@ -470,3 +470,69 @@ consume():
 consume():
     push_to_app()
 ```
+
+# Stage 6
+
+## Priority Logic
+
+Notification Priority:
+
+| Type      | Weight |
+| --------- | ------ |
+| Placement | 3      |
+| Result    | 2      |
+| Event     | 1      |
+
+Notifications are sorted by:
+
+1. Priority Weight (Descending)
+2. Timestamp (Descending)
+
+---
+
+## Approach
+
+1. Fetch notifications from API.
+2. Assign weight based on notification type.
+3. Sort by:
+
+   * Weight DESC
+   * Timestamp DESC
+4. Return first 10 notifications.
+
+---
+
+## Handling New Notifications
+
+Instead of repeatedly sorting the entire collection, a Min Heap of size 10 can be maintained.
+
+Benefits:
+
+* O(log k) insertion
+* Efficient for continuous streams
+* Memory efficient
+
+Where:
+
+k = 10
+
+---
+
+## Time Complexity
+
+Sorting Approach:
+
+O(n log n)
+
+Heap Approach:
+
+O(n log 10)
+
+≈ O(n)
+
+---
+
+## Scalability
+
+Heap based solution scales better when notification volume grows significantly.
+
